@@ -8,36 +8,18 @@ echo "Michael Cordes"
 echo " "
 echo "##################################"
 
-sleep 10
+sleep 2
 
 #Varialben
 BILDER_VAR=0
 MAX_BILDER=100				# Durchlaeufe der Bilder (Zyklus)
-#MY_TIME=10000				# Zeitabschand zwischen den Bilder
-#GES_TIME=$(($MY_TIME *  3))		#360 + 100))	# Gesamte Zeit eines Zyklus
 TIME_PIC=$((60 * 1))
 
 HOST='host'
-USER='us'
+USER='user'
 PASSWD='pass'
-FILE='test.txt'
 
 
-
-
-ftp -n $HOST << END_SCRIPT
-quote USER $USER
-quote PAS$PASSWD
-binary
-put $FILE
-quit 
-END_SCRIPT
-
-exit 0
-
-
-#echo "Zeit zw. den Bildern: (ms) "  $MY_TIME
-#echo "Aufnahmezyklus: (min)      " $(($GES_TIME / 60000))
 echo "Durchgaenge:               " $MAX_BILDER
 echo "Aufnahmezeit: (min)        " $(($TIME_PIC / 60 * $MAX_BILDER)) 
 echo " "
@@ -53,7 +35,6 @@ echo "USB einbinden"
 	sleep 2
 	sudo mount /dev/sda1 /media/usbstick
 	cd /media/usbstick/
-
 
 #Neuer Ornder nach Neustart
 TAG_NUMB=1
@@ -87,15 +68,24 @@ do
 	echo " Speichernutzung: "  `cat /proc/meminfo|grep 'MemF'| awk '{print $2}'` "kB von" `cat /proc/meminfo|grep 'MemT'| awk '{print $2}'` "kB frei"
 
 	cd /media/usbstick/TAG_$(($TAG_NUMB))/
-	#sudo mkdir $( printf "%03d" $BILDER_VAR)
-	cd
 
-	sudo raspistill -n -o /media/usbstick/TAG_$(($TAG_NUMB))/PIC_TAG_$( printf "%03d" $TAG_NUMB)__$( printf "%05d" $BILDER_VAR).jpg -w 1280 -h 960
+	FILE=/media/usbstick/TAG_$TAG_NUMB/PIC_TAG_$( printf "%03d" $TAG_NUMB)__$( printf "%05d" $BILDER_VAR).jpg
+	FILE_NAME=PIC_TAG_$( printf "%03d" $TAG_NUMB)__$( printf "%05d" $BILDER_VAR).jpg
 
+	sudo raspistill -n -o $FILE -w 1280 -h 960
 
+	sleep 5
+	echo "FTP upload"
+	ftp -n $HOST << END_SCRIPT
+	quote USER $USER
+	quote PASS $PASSWD
+	binary
+	put $FILE_NAME
+	quit
+END_SCRIPT
 
-
-	sleep $TIME_PIC
+	echo "Warte Sec:" $(($TIME_PIC - 5))
+	sleep $(($TIME_PIC - 5))
 
 	BILDER_VAR=$((BILDER_VAR+1))
 
@@ -108,12 +98,14 @@ echo " Speichernutzung: "  `cat /proc/meminfo|grep 'MemF'| awk '{print $2}'` "kB
 
 echo "Bilder gemacht."
 
-cd 
+cd ~
 
-sleep 3
+sleep 1
 
 echo "USB auswerfen"
 sleep 5
 	sudo umount /media/usbstick
 
 echo "Fertig"
+
+exit 0
